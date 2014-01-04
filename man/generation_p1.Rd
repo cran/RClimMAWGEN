@@ -33,7 +33,10 @@ This data set is intended for research purposes only, being distributed in the h
 \examples{
 # See file 'generations.R' to see how this dataset is obtained.
 f <- system.file("examples/generations.R",package="RClimMAWGEN")
-## source(f) # Do not Run!! This line is now commented because the elapsed time is too long!! Please uncomment to run this line. 
+ 
+## This line is now commented because the elapsed time is too long!! 
+## Please uncomment to run this line. 
+# source(f) # Not Run
 
 }
 

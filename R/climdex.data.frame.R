@@ -1,7 +1,7 @@
 
 NULL 
 #'
-#' Create input object for clim,ete index analyis from RMAWWGEN output.
+#' Create input object for clim,ete index analyis from RMAWGEN output.
 #' 
 #' @param data data.frame containing realizations of weather variables, e.g. the one retured as \code{output} by \code{\link{ComprehensiveTemperatureGenerator}} 
 #' @param station names of weather stations where to apply climate indices
@@ -17,11 +17,27 @@ NULL
 #' @param prefix name for time series on which climate indices are calculated. 
 #' @param date.series see \code{\link{climdexInput.raw}}. If missing, it is automatically calculated from \code{start_date} and \code{end_date}
 #' @param frequency string value. Default is \code{c("yearly","monthly","daily")}. Set one of these, if the climate indices are referred to each year, month or day respectively.
-#' 
+#' @param freq string value. Default is \code{c("default","monthly", "annual")}. It has the same role of \code{"frequency"} and is used in several \code{cilmdex.pcic} indices. If it is omitted (Default) the frequency is obtaind by \code{frequency} argument. See \code{\link{climdex.tn90p}},\code{\link{climdex.tx90p}} .
+#' @param ... further arguments
+#'  
 #' @title ClimDex Data Frame
+#' 
+#' 
+# Check usage coherence before submitting to CRAN 
+#' @usage climdex.data.frame(data, station, realization_TN,
+#'        realization_TX, realization_PREC,
+#'        start_date = "1981-01-01", end_date = "2010-12-31",
+#'        climate_index = "climdex.gsl",   frequency = c("yearly", "monthly", "daily"),
+#'        freq = c("default", "monthly", "annual"),
+#'        date.series = seq(as.PCICt(start_date, cal = "gregorian"), as.PCICt(end_date, cal = "gregorian"), by = "days"),
+#'        base.range = c(1990, 2002), n = 5, prefix = NULL, ...)
+#' 
+
+#' 
 #' @return a \code{climdex.data.frame} object (see the variable \code{climdex} in the examples.)
 #' @export 
-#' @seealso \code{\link{as.climdex.data.frame}},\code{\link{climdexInput.raw}}
+#' @seealso \code{\link{as.climdex.data.frame}},\code{\link{climdexInput.raw}},\code{\link{climdex.tn90p}},\code{\link{climdex.tx90p}}
+#' @import climdex.pcic RMAWGEN
 #' 
 #' @references \url{http://www.climdex.org}
 #' @author Emanuele Cordano, Annalisa Di Piazzaa
@@ -30,7 +46,8 @@ NULL
 #' @examples
 #'rm(list=ls())
 #'library(RClimMAWGEN)
-#' #  generated and observed daily temperature data for the considering period (1981-2010)(RMAWGEN output data structure)
+#' #  generated and observed daily temperature data for the considering period 
+#' #  (1981-2010)(RMAWGEN output data structure)
 #' data (generation_p1)
 #'
 #'
@@ -51,20 +68,39 @@ NULL
 #' start_date = "1981-01-01"
 #' end_date = "2010-12-31"
 #'
+#' # The indices \link{climdex.tn90p},\link{climdex.tx90p} are considered in this example
 #' climate_indices = c("climdex.tn90p","climdex.tx90p")
 #'
 #' frequency =  "monthly"
 #'
-#' date.series = seq(as.PCICt(start_date, cal = "gregorian"), as.PCICt(end_date, cal = "gregorian"), by = "days")
+#' date.series = seq(as.PCICt(start_date, cal = "gregorian"), 
+#'  as.PCICt(end_date, cal = "gregorian"), by = "days")
 #'
 #' base.range = c(1990, 2002)
 #' n = 5
 #' prefix = NULL
 #'
 #' 
-#' climdex <- climdex.data.frame(data=realizations, station=stations, realization_TN=realizations_TN,realization_TX=realizations_TX,realization_PREC=NULL, start_date= start_date, end_date = end_date ,climate_index = climate_indices,frequency = frequency,date.series = date.series,base.range = base.range, n = n, prefix = prefix)
-#'
+#' climdex <- climdex.data.frame(data=realizations, station=stations, 
+#'  realization_TN=realizations_TN,realization_TX=realizations_TX,realization_PREC=NULL, 
+#'  start_date= start_date, end_date = end_date ,climate_index = climate_indices,
+#'  frequency = frequency,date.series = date.series,base.range = base.range, 
+#'  n = n, prefix = prefix)
+#' 
 #' str(climdex)
+#' 
+#' ## Function 'climdex.data.frame' can be also used with annual frequency
+#' ## The following lines are now commented because the elapsed time is too long!! 
+#' ## Please uncomment to run the following lines to run the function. 
+#' # climdex_annual <- climdex.data.frame(data=realizations, station=stations, 
+#' # realization_TN=realizations_TN,realization_TX=realizations_TX,realization_PREC=NULL, 
+#' # start_date= start_date, end_date = end_date ,climate_index = climate_indices,
+#' # frequency = "yearly",date.series = date.series,base.range = base.range, 
+#' # n = n, prefix = prefix)
+#' #
+#' # str(climdex_annual)
+#' 
+#' 
 #' # Wilcoxon test between observed and generated climate indices
 #' 
 #'  observed <- "T0129__Tn_mes__climdex.tx90p"
@@ -95,14 +131,30 @@ climdex.data.frame <- function(data,
                                 realization_TX,
                                 realization_PREC,
                                 start_date="1981-01-01",
-                                end_date="2010-12-31",climate_index="climdex.gsl",frequency=c("yearly","monthly","daily"),
-                                date.series=seq(as.PCICt(start_date, cal="gregorian"), as.PCICt(end_date, cal="gregorian"), by="days"),base.range=c(1990, 2002),n=5,prefix=NULL){
+                                end_date="2010-12-31",climate_index="climdex.gsl",
+								frequency=c("yearly","monthly","daily"),
+								freq=c("default","monthly", "annual"),
+                                date.series=
+										seq(as.PCICt(start_date, cal="gregorian"), 
+										as.PCICt(end_date, cal="gregorian"), 
+										by="days"),
+								base.range=c(1990, 2002),n=5,prefix=NULL,...){
 
   out <- NULL
    
   daily=FALSE
   monthly=FALSE
   yearly=FALSE
+  
+  
+  frequency <- frequency[1]
+  freq <- freq[1]
+  
+  if (freq!="default") frequency <- freq
+  if (freq=="default") freq <- frequency
+  if (frequency=="annual") frequency <- "yearly"
+  if (freq=="yearly") freq <- "annual"
+
   if (frequency=="daily") daily=TRUE
   if (frequency=="monthy") monthly=TRUE
   if (frequency=="yearly") yearly=TRUE
@@ -121,16 +173,20 @@ climdex.data.frame <- function(data,
 	
 	
     temp <- climdexInput.raw(tx,tn,prec, date.series, date.series, date.series,base.range,n)
+
+	###str(temp)
 	
-	if(frequency=="yearly"){
+##	UNCOMMENTED BY EC ON 2014-02-01
+	if (frequency=="yearly"){
 		
-		years <- unique(as.character(temp@annual.factor))
+		years <- unique(as.character(temp@date.factors$annual))
 		
 		out <- as.data.frame(array(NA,c(length(years),length(climate_index))))
+		
 	}
 	else if (frequency=="monthly") {
 		
-		months <- unique(as.character(temp@monthly.factor))
+		months <- unique(as.character(temp@date.factors$monthly))
 		
 		out <- as.data.frame(array(NA,c(length(months),length(climate_index))))
 	} else if (frequency=="daily") {
@@ -138,17 +194,45 @@ climdex.data.frame <- function(data,
 		out <- array(NA,c(nrow(tx),length(climate_index)))
 	}
 	
-   
+##   END UNCOMMENTED BY EC ON 2014-02-01 
     names(out) <- paste(prefix,climate_index,sep="__")
 
 	
     for (f in climate_index){
 
-     
-	  call <- call(f,temp)
+	  
+	  
+#	  list <- list(ci=temp,...)
+	  
+	  
+
+	  
+	  names_args <- names(formals(f))
+	  nargs <- formals("climdex.data.frame")
+	  nargs <- nargs[names(nargs) %in% names_args]
 	
+	  names <- names(nargs)
+	  nargs <- lapply(X=names,FUN=function(x) {get(x)})
+	  names(nargs) <- names
+	  
+
+	  
+	  args <- list(ci=temp,...)
+	  args[names] <- nargs
+
+	  
+	
+	  
+	  
 	  name <- names(out)[climate_index==f]
-      out[,name] <- as.vector(eval(call))
+	  
+	  
+	##  print("out")
+	##  str(out)
+	##  str(as.vector(eval(call)))
+	##  print("end out")
+	  
+      out[,name] <- as.vector(do.call(f,args))
     }
 
   } else {
@@ -162,8 +246,8 @@ climdex.data.frame <- function(data,
         name <- paste(it,realization_TN[r],sep="__")
       
         temp0 <- climdex.data.frame(data,station=it,realization_TN=realization_TN[r],
-                                        realization_TX=realization_TX[r],realization_PREC=realization_PREC[r],frequency=frequency,
-                               date.series=date.series,base.range=base.range,n=n,prefix=name,climate_index=climate_index)
+                                        realization_TX=realization_TX[r],realization_PREC=realization_PREC[r],frequency=frequency,freq=freq,
+                               date.series=date.series,base.range=base.range,n=n,prefix=name,climate_index=climate_index,...)
   
 		
 		
